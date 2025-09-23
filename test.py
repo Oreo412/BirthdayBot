@@ -23,7 +23,7 @@ bdcon: aiosqlite.Connection = None  #bdcon = birthday connection. db and con are
 async def on_ready():
     
     global bdcon 
-    bdcon = await aiosqlite.connect("birthdays.db")
+    bdcon = await aiosqlite.connect("database/birthdays.db")
     try:
         await bdcon.executescript("""
             PRAGMA journal_mode = WAL;
