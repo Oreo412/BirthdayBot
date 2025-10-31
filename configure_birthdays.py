@@ -27,8 +27,9 @@ class ConfigureInBirthdaysView(discord.ui.View):
 
     @discord.ui.button(style = discord.ButtonStyle.primary, label = "Configure Birthdays In Birthdays Channel")
     async def in_channel_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        time_configure_message = await self.channel.send(content = "loading...")
+        await interaction.client.send_time_configure(channel = self.channel, interaction = interaction)
         await interaction.response.send_message(content = "Birthdays Channel Configured!")
+        await interaction.message.delete()
     @discord.ui.button(style = discord.ButtonStyle.secondary, label = "Configure Another Channel as Birthdays Channel")
     async def another_channel_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(SelectBirthdayChannelModal())

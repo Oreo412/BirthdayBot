@@ -72,7 +72,7 @@ class tzModal(discord.ui.Modal, title = "Input Timezone"):
         
 class hourView(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout = None)
         for i in range(1, 13):
             btn = discord.ui.Button(label = str(i), style = discord.ButtonStyle.secondary, row = ((i-1)//4))
             btn.callback = make_hour_callback(i)
@@ -81,12 +81,12 @@ class hourView(discord.ui.View):
 def make_hour_callback(hour):
     async def hour_callback(interaction: discord.Interaction):
         await interaction.response.defer()
-        await interaction.message.edit(content = f"Set Minute\nSet Time: {str(0 if hour == 12 else hour).zfill(2)}:MM", view = minuteView(hour = hour))
+        await interaction.message.edit(content = f"Set Minute\nSet Time: {str(hour).zfill(2)}:MM", view = minuteView(hour = hour))
     return hour_callback
 
 class minuteView(discord.ui.View):
     def __init__(self, hour: int):
-        super().__init__()
+        super().__init__(timeout = None)
         self.hour = hour
         for i in range(0, 60, 5):
             btn = discord.ui.Button(label = str(i).zfill(2), style = discord.ButtonStyle.secondary, row = i//20)
@@ -109,7 +109,7 @@ def make_minute_callback(minute, hour):
 
 class amOrPm(discord.ui.View):
     def __init__(self, minute, hour):
-        super().__init__()
+        super().__init__(timeout = None)
         self.hour = hour
         self.minute = minute
         AM = discord.ui.Button(style = discord.ButtonStyle.primary, label = "AM", row = 0)
@@ -138,7 +138,7 @@ class amOrPm(discord.ui.View):
 
 class tzLinkView(discord.ui.View):
     def __init__(self, hour: int, minute: int, pm: bool):
-        super().__init__()
+        super().__init__(timeout = None)
         self.hour = hour
         self.minute = minute
         self.pm = pm
@@ -159,7 +159,7 @@ class tzLinkView(discord.ui.View):
     
 class time_configure_view(discord.ui.View):
     def __init__(self, bdcon: aiosqlite.Connection, guild_id: int, message: discord.Message):
-        super().__init__()
+        super().__init__(timeout = None)
         self.container = discord.ui.Container()
         self.message = message
         self.bdcon = bdcon

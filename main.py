@@ -193,8 +193,6 @@ async def UpdatePin(interaction: discord.Interaction):
 async def on_guild_join(guild):
     logger.info(f"Joined new guild: {guild.name}")
     await bot.tree.sync(guild = guild)
-    global GUILDS
-    GUILDS.append(guild)
     try:
         await bot.bdcon.execute("INSERT INTO guilds (guild_id) VALUES (?)", (guild.id))
         await bot.bdcon.commit()

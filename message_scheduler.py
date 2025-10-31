@@ -7,7 +7,7 @@ import traceback
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import logging
 
 logger = logging.getLogger("birthday_logger")
@@ -30,6 +30,10 @@ class message_scheduler(commands.Cog):
             tz = ZoneInfo(timezone)
             if pm:
                 hour += 12
+
+            if hour == 12 or hour == 24:
+                hour -= 12
+            
             trigger = CronTrigger(hour = hour, minute = minute, timezone = tz)
             self.scheduler.add_job(func = self.guild_messages, trigger = trigger, args = [guild_id, channel_id, tz], misfire_grace_time = 3600, id = f"schedule_for_{guild_id}", replace_existing=True, coalesce = True)
             print(f"Guild: {guild_id} successfully scheduled!")
