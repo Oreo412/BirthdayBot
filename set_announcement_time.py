@@ -19,9 +19,9 @@ class set_announcement_time(commands.Cog):
         self.bot.time_configure_view = time_configure_view
         self.bot.send_time_configure = send_time_configure
 
-    @app_commands.command(name="timeviewtest", description = "Test the Time View")
+    @app_commands.command(name="configtime", description = "Test the Time View")
     async def timeviewtest(self, interaction):
-        await interaction.response.send_message(content = "Select Hour:", view = hourView())
+        await send_time_configure(channel = interaction.channel, interaction = interaction)
 
     async def db_update(self, hour: int, minute: int, pm: bool, tz: str, guild_id: int):
         try:
