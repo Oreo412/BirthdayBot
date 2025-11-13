@@ -116,7 +116,7 @@ class BdayModal(discord.ui.Modal, title = "Input Birthday"):
             await interaction.client.bdcon.commit()
         except DatabaseError as e:
             logger.exception("Failed to insert birthday into birthdays table")
-            interaction.client.bdcon.rollback()
+            await interaction.client.bdcon.rollback()
         await interaction.client.UpdatePin(interaction)
 
 class ErrorView(discord.ui.View):

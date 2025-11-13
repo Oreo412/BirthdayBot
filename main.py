@@ -95,10 +95,10 @@ async def get_guild_ids():
             return {row[0] for row in rows}
     except DatabaseError as e:
         logger.exception("DB Failure:")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
     except Exception as e:
         logger.exception("get_guild_id failure:")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
 
 
 async def guilds_update():
@@ -108,8 +108,8 @@ async def guilds_update():
     added_guilds = bot_guild_ids - db_guild_ids
     try:
         await bot.bdcon.execute("BEGIN")
-        await bot.bdcon.executemany("DELETE FROM guilds WHERE guild_id = ?;",((gid, gid) for gid in removed_guilds))
-        await bot.bdcon.executemany("DELETE FROM birthdays WHERE guild_id = ?;", ((gid, gid) for gid in removed_guilds))
+        await bot.bdcon.executemany("DELETE FROM guilds WHERE guild_id = ?;",((gid,) for gid in removed_guilds))
+        await bot.bdcon.executemany("DELETE FROM birthdays WHERE guild_id = ?;", ((gid,) for gid in removed_guilds))
         await bot.bdcon.executemany("INSERT OR IGNORE INTO guilds (guild_id) VALUES (?)", ((gid,) for gid in added_guilds))
         await bot.bdcon.commit()
     except DatabaseError as e:
@@ -117,7 +117,7 @@ async def guilds_update():
         await bot.bdcon.rollback()
     except Exception as e: 
         logger.exception("guilds_update failure")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
     
 
 async def members_update():
@@ -132,10 +132,10 @@ async def members_update():
         await bot.bdcon.commit()
     except DatabaseError as e:
         logger.exception("DB failure in members_update")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
     except Exception as e:
         logger.exception("members_update failure")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
 
     
 async def schedule_on_startup():
@@ -180,7 +180,7 @@ async def UpdatePin(interaction: discord.Interaction):
             await bot.bdcon.commit()
     except DatabaseError as e:
         logger.exception("DB Error in UpdatePin")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
         await interaction.followup.send("Something went wrong")
     except Exception as e:
         await interaction.followup.send("Something went wrong")
@@ -194,11 +194,11 @@ async def on_guild_join(guild):
     logger.info(f"Joined new guild: {guild.name}")
     await bot.tree.sync(guild = guild)
     try:
-        await bot.bdcon.execute("INSERT INTO guilds (guild_id) VALUES (?)", (guild.id))
+        await bot.bdcon.execute("INSERT INTO guilds (guild_id) VALUES (?)", (guild.id,))
         await bot.bdcon.commit()
     except DatabaseError as e:
         logger.exception(f"Failure to add {guild.name} into DB")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
 
     
 
@@ -224,10 +224,10 @@ async def on_guild_channel_delete(channel):
             await bot.bdcon.execute("UPDATE guilds SET birthday_channel_id = NULL, button_pin_id = NULL, list_pin_id = NULL WHERE guild_id = ?", (channel.guild.id,))
     except DatabaseError as e:
         logger.exception("failure to remove channel from DB")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
     except Exception as e:
         logger.exception("on_guild_channel_delete has failed")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
 
 @bot.tree.command(name="updatepin", description="Update the Pin")
 async def updatepin(interaction: discord.Interaction):
@@ -248,7 +248,7 @@ async def create_input_pin(birthdays_channel, bot):
         await bot.bdcon.commit()
     except DatabaseError as e:
         logger.exception("Failure to update db with input pin")
-        bot.bdcon.rollback()
+        await bot.bdcon.rollback()
 
 bot.setup_hook = setup_hook
 bot.UpdatePin = UpdatePin

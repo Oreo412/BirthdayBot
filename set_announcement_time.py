@@ -179,6 +179,7 @@ class time_configure_view(discord.ui.View):
             hour, minute, timezone, pm = await (await self.bdcon.execute("SELECT announcement_hour, announcement_minute, timezone, pm FROM guilds WHERE guild_id = ?", (self.guild_id,))).fetchone()
             if hour and minute and timezone:
                 await self.message.edit(content = f"Announcement Time and Timezone set to {str(int(hour) - 12 if pm else hour).zfill(2)}:{str(minute).zfill(2)} {"PM" if pm else "AM"}, {timezone} time. Would you like to edit it?")
+                print("triggered!")
             else: 
                 await self.message.edit(content = "No announcement time or timezone configured. Would you like to configure it?")
         except DatabaseError as e:
@@ -196,7 +197,8 @@ class time_configure_view(discord.ui.View):
         await interaction.message.delete()
 
 async def send_time_configure(channel: discord.TextChannel, interaction: discord.Interaction):
-    time_configure_message = await channel.send(content = "loading...")
+    await interaction.response.send_message(content = "loading...")
+    time_configure_message = await interaction.original_response()
     await time_configure_message.edit(content = "loading...", view = time_configure_view(bdcon = interaction.client.bdcon, guild_id = interaction.guild_id, message = time_configure_message))
     return time_configure_message
 
