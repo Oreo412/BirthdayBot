@@ -18,6 +18,7 @@ class set_announcement_time(commands.Cog):
         self.bdcon = bot.bdcon
         self.bot.time_configure_view = time_configure_view
         self.bot.send_time_configure = send_time_configure
+        self.bot.send_tconfig_in_birthdays = send_tconfig_in_birthdays
 
     @app_commands.command(name="configtime", description = "Test the Time View")
     async def timeviewtest(self, interaction):
@@ -48,14 +49,11 @@ class tzModal(discord.ui.Modal, title = "Input Timezone"):
             await interaction.client.bdcon.execute("UPDATE guilds SET announcement_hour = ?, announcement_minute = ?, timezone = ?, pm = ? WHERE guild_id = ?", (self.hour, self.minute, self.tz.value, self.pm, interaction.guild_id))
             await interaction.client.bdcon.commit()
             message_scheduler = interaction.client.get_cog("message_scheduler")
-            message_scheduler.schedule_guild_message(guild_id = interaction.guild_id, channel_id = interaction.channel_id, hour = self.hour, minute = self.minute, pm = bool, timezone = self.tz.value)
+            message_scheduler.schedule_guild_message(guild_id = interaction.guild_id, channel_id = interaction.channel_id, hour = self.hour, minute = self.minute, pm = self.pm, timezone = self.tz.value)
             await interaction.response.defer()
-            await interaction.message.delete()
             await interaction.channel.send(content = f"Set announcement time to {str(self.hour).zfill(2)}:{str(self.minute).zfill(2)} {"PM" if self.pm else "AM"} in the {self.tz.value} timezone!")
             button_pin_id = await (await interaction.client.bdcon.execute("SELECT button_pin_id FROM guilds WHERE guild_id = ?", (interaction.guild_id,))).fetchone()
-            print(f"Selected button: {button_pin_id}")
             if not button_pin_id[0]:
-                print("button_pin_id triggered")
                 await interaction.client.create_input_pin(interaction.channel, interaction.client)
         except ZoneInfoNotFoundError: 
             await interaction.message.edit(embed = discord.Embed(color = discord.Color.red(), title = "Try Again", description = "Please paste a valid timezone"))
@@ -170,21 +168,32 @@ class time_configure_view(discord.ui.View):
         cancel_btn.callback = self.cancel_callback
         self.add_item(cancel_btn)
         self.add_item(configure_btn)
-        asyncio.create_task(self.change_message())
         
 
     
     async def change_message(self):
         try:
-            hour, minute, timezone, pm = await (await self.bdcon.execute("SELECT announcement_hour, announcement_minute, timezone, pm FROM guilds WHERE guild_id = ?", (self.guild_id,))).fetchone()
-            if hour and minute and timezone:
-                await self.message.edit(content = f"Announcement Time and Timezone set to {str(int(hour) - 12 if pm else hour).zfill(2)}:{str(minute).zfill(2)} {"PM" if pm else "AM"}, {timezone} time. Would you like to edit it?")
-                print("triggered!")
-            else: 
-                await self.message.edit(content = "No announcement time or timezone configured. Would you like to configure it?")
+            row = await (await self.bdcon.execute(
+                "SELECT announcement_hour, announcement_minute, timezone, pm FROM guilds WHERE guild_id = ?",
+                (self.guild_id,)
+            )).fetchone()
+
+            if not row:
+                await self.message.edit(content="No announcement time or timezone configured. Would you like to configure it?")
+                return
+
+            hour, minute, timezone, pm = row
+            if hour is not None and minute is not None and timezone:
+                display_hour = (int(hour) - 12) if pm and int(hour) > 12 else int(hour)
+                await self.message.edit(content=f"Announcement Time and Timezone set to {display_hour:02d}:{int(minute):02d} {'PM' if pm else 'AM'}, {timezone} time. Would you like to edit it?")
+            else:
+                await self.message.edit(content="No announcement time or timezone configured. Would you like to configure it?")
         except DatabaseError as e:
             logger.exception("Failed to read DB in change_message")
-            self.message.edit("Error: ")
+            await self.message.edit("Error: ")
+        except Exception as e:
+            logger.exception("change_message task failed")
+            await self.message.edit("Error: ")
 
         
     
@@ -197,10 +206,25 @@ class time_configure_view(discord.ui.View):
         await interaction.message.delete()
 
 async def send_time_configure(channel: discord.TextChannel, interaction: discord.Interaction):
-    await interaction.response.send_message(content = "loading...")
-    time_configure_message = await interaction.original_response()
-    await time_configure_message.edit(content = "loading...", view = time_configure_view(bdcon = interaction.client.bdcon, guild_id = interaction.guild_id, message = time_configure_message))
-    return time_configure_message
+    try:
+        await interaction.response.send_message(content = "loading...")
+        time_configure_message = await interaction.original_response()
+        tconfig_view = time_configure_view(bdcon = interaction.client.bdcon, guild_id = interaction.guild_id, message = time_configure_message)
+        await time_configure_message.edit(content = "loading...", view = tconfig_view)
+        await tconfig_view.change_message()
+        return time_configure_message
+    except Exception as e:
+        logger.exception("send_time_configure failure")
+
+async def send_tconfig_in_birthdays(channel: discord.TextChannel, interaction: discord.Interaction):
+    try:
+        tconfig_message = await channel.send(content = "loading...")
+        tconfig_view = time_configure_view(bdcon = interaction.client.bdcon, guild_id = interaction.guild_id, message = tconfig_message)
+        await tconfig_message.edit(content = "loading...", view = tconfig_view)
+        await tconfig_view.change_message()
+        return tconfig_message
+    except Exception as e:
+        logger.exception("send_time_configure failure")
 
 async def setup(bot):
     await bot.add_cog(set_announcement_time(bot))

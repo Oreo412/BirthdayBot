@@ -27,8 +27,8 @@ class ConfigureInBirthdaysView(discord.ui.View):
 
     @discord.ui.button(style = discord.ButtonStyle.primary, label = "Configure Birthdays In Birthdays Channel")
     async def in_channel_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.client.send_time_configure(channel = self.channel, interaction = interaction)
-        await interaction.followup.send_message(content = "Birthdays Channel Configured!")
+        await interaction.client.send_tconfig_in_birthdays(channel = self.channel, interaction = interaction)
+        await interaction.response.send_message(content = "Birthdays Channel Configured!")
         await interaction.message.delete()
     @discord.ui.button(style = discord.ButtonStyle.secondary, label = "Configure Another Channel as Birthdays Channel")
     async def another_channel_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -41,8 +41,8 @@ class SelectBirthdayChannelModal(discord.ui.Modal, title = "Select Channel"):
     )
     async def on_submit(self, interaction: discord.Interaction):
         channel = await interaction.client.fetch_channel(self.channel.component.values[0])
-        await interaction.client.send_time_configure(channel = channel, interaction = interaction)
-        await interaction.followup.send_message(content = f"Configured birthdays in {channel.name}")
+        await interaction.client.send_tconfig_in_birthdays(channel = channel, interaction = interaction)
+        await interaction.response.send_message(content = f"Configured birthdays in {channel.name}")
         await interaction.message.delete()
 
 class ConfigureView(discord.ui.View):
@@ -52,7 +52,7 @@ class ConfigureView(discord.ui.View):
     async def create_channel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if(interaction.permissions.administrator == True):
             birthday_channel = await interaction.guild.create_text_channel("Birthdays")
-            await interaction.client.send_time_configure(channel = birthday_channel, interaction = interaction)
+            await interaction.client.send_tconfig_in_birthdays(channel = birthday_channel, interaction = interaction)
             await interaction.channel.send("Channel created and configured!")
             await interaction.message.delete()
         else:

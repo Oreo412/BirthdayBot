@@ -26,7 +26,9 @@ class message_scheduler(commands.Cog):
         self.scheduler.shutdown(wait = False)
 
     def schedule_guild_message(self, guild_id: int, channel_id: int, hour: int, minute: int, pm: bool, timezone: str):
+        print("schedule_guild_message triggered")
         try:
+            print("schedule_guild_message triggered")
             tz = ZoneInfo(timezone)
             if pm:
                 hour += 12
@@ -36,7 +38,7 @@ class message_scheduler(commands.Cog):
             
             trigger = CronTrigger(hour = hour, minute = minute, timezone = tz)
             self.scheduler.add_job(func = self.guild_messages, trigger = trigger, args = [guild_id, channel_id, tz], misfire_grace_time = 3600, id = f"schedule_for_{guild_id}", replace_existing=True, coalesce = True)
-            print(f"Guild: {guild_id} successfully scheduled!")
+            logger.info(f"Guild: {guild_id} successfully scheduled!")
         except ZoneInfoNotFoundError as e:
             logger.exception("Non conforming timezone key passed to scheduler")
         except Exception as e:
@@ -47,8 +49,11 @@ class message_scheduler(commands.Cog):
             now = datetime.now(tz)
             day = now.day
             month = now.month
-            birthday_channel = await self.bot.fetch_channel(birthday_channel_id)
-            birthdays = await (await self.bdcon.execute("SELECT member_id, year FROM birthdays WHERE guild_id = ? AND day = ? AND month = ?", (guild_id, day, month))).fetchall()
+            birthday_channel = self.bot.get_channel(birthday_channel_id) or await self.bot.fetch_channel(birthday_channel_id)
+
+            async with self.bdcon.execute("SELECT member_id, year FROM birthdays WHERE guild_id = ? AND day = ? AND month = ?", (guild_id, day, month)) as cur:
+                birthdays = await cur.fetchall()
+            logger.info(f"Sending messages for {guild_id} on DAY: {day}, MONTH: {month}")
             for member_id, year in birthdays:
                 age_text = f" They are turning {now.year - int(year)} years old!" if year is not None else ""
                 message = f"Today is <@{member_id}>'s birthday!{age_text} 🎉 Happy Birthday!"
